@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수행평가 기반 세특 자동 작성</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <!-- 메인 카드 형태의 컨테이너 -->
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl">
+        <!-- 제목 -->
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
+            수행평가 기반 세특 자동 작성
+        </h1>
+
+        <!-- 메시지 박스 -->
+        <div id="messageBox" class="p-3 rounded-lg border mb-4 hidden" role="alert">
+            <p id="messageText"></p>
+        </div>
+
+        <!-- 입력 필드 섹션 (2열 그리드 레이아웃) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- 수행평가 과제 정보 입력란 -->
+            <div>
+                <label for="assignmentDetails" class="block text-gray-700 text-sm font-bold mb-2">
+                    수행평가 과제 정보 (예: 과목명, 과제명, 평가 목표)
+                </label>
+                <textarea
+                    id="assignmentDetails"
+                    class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 resize-y"
+                    placeholder="예: 국어, '환경 보호 캠페인 기획', 문제 해결 능력 및 협업 능력 평가"
+                ></textarea>
+            </div>
+
+            <!-- 채점 기준 입력란 -->
+            <div>
+                <label for="gradingCriteria" class="block text-gray-700 text-sm font-bold mb-2">
+                    채점 기준 (예: 항목별 점수, 평가 내용)
+                </label>
+                <textarea
+                    id="gradingCriteria"
+                    class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 resize-y"
+                    placeholder="예: 내용의 충실성 (5/5), 논리적 구성 (4/5), 창의적 아이디어 (5/5)"
+                ></textarea>
+            </div>
+        </div>
+
+        <!-- 학생 수행 내용 입력란 (단일 열) -->
+        <div class="mb-8">
+            <label for="studentPerformance" class="block text-gray-700 text-sm font-bold mb-2">
+                학생 수행 내용 (구체적인 행동 및 결과)
+            </label>
+            <textarea
+                id="studentPerformance"
+                class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 h-48 resize-y"
+                placeholder="예: '환경 보호 캠페인 기획' 수행평가에서, 학생은 조장으로서 팀원들과 적극적으로 소통하며 아이디어를 조율했습니다. 특히, 플라스틱 사용 줄이기 캠페인에서 실현 가능한 대안을 다각도로 모색하고, 설득력 있는 발표 자료를 제작하여 높은 평가를 받았습니다. 자료 조사 과정에서 심층적인 분석 능력을 보여주었으며, 팀 발표 시 명확하고 자신감 있는 태도로 내용을 전달했습니다."
+            ></textarea>
+        </div>
+
+        <!-- 세특 생성 버튼 -->
+        <div class="flex justify-center mb-8">
+            <button
+                id="generateButton"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300 ease-in-out transform hover:scale-105"
+            >
+                <span id="buttonText">세특 생성하기</span>
+                <div id="loadingSpinner" class="hidden flex items-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    생성 중...
+                </div>
+            </button>
+        </div>
+
+        <!-- 생성된 세특 내용 표시 및 복사 버튼 -->
+        <div id="generatedSeTeukSection" class="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200 shadow-inner hidden">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">생성된 세특 내용</h2>
+            <textarea
+                id="generatedSeTeuk"
+                class="w-full py-3 px-4 text-gray-800 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-64 resize-y"
+                readonly
+            ></textarea>
+            <button
+                id="copyButton"
+                class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition duration-300 ease-in-out"
+            >
+                클립보드에 복사
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // DOM 요소 참조 가져오기
+        const assignmentDetailsInput = document.getElementById('assignmentDetails');
+        const gradingCriteriaInput = document.getElementById('gradingCriteria');
+        const studentPerformanceInput = document.getElementById('studentPerformance');
+        const generateButton = document.getElementById('generateButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const generatedSeTeukSection = document.getElementById('generatedSeTeukSection');
+        const generatedSeTeukTextarea = document.getElementById('generatedSeTeuk');
+        const copyButton = document.getElementById('copyButton');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+
+        /**
+         * 사용자에게 메시지를 표시하는 함수
+         * @param {string} msg - 표시할 메시지 내용
+         * @param {'success'|'error'|'info'} type - 메시지 타입 (색상 결정)
+         */
+        const showMessage = (msg, type) => {
+            messageText.textContent = msg;
+            messageBox.classList.remove('hidden', 'bg-green-100', 'border-green-400', 'text-green-700', 'bg-red-100', 'border-red-400', 'text-red-700', 'bg-blue-100', 'border-blue-400', 'text-blue-700');
+
+            let bgColor = '';
+            let borderColor = '';
+            let textColor = '';
+
+            if (type === 'success') {
+                bgColor = 'bg-green-100';
+                borderColor = 'border-green-400';
+                textColor = 'text-green-700';
+            } else if (type === 'error') {
+                bgColor = 'bg-red-100';
+                borderColor = 'border-red-400';
+                textColor = 'text-red-700';
+            } else { // info
+                bgColor = 'bg-blue-100';
+                borderColor = 'border-blue-400';
+                textColor = 'text-blue-700';
+            }
+
+            messageBox.classList.add(bgColor, borderColor, textColor);
+            messageBox.classList.remove('hidden');
+        };
+
+        /**
+         * 메시지 박스를 숨기는 함수
+         */
+        const hideMessage = () => {
+            messageBox.classList.add('hidden');
+            messageText.textContent = '';
+        };
+
+        /**
+         * 세특 내용을 AI를 통해 생성하는 비동기 함수
+         */
+        const generateSeTeuk = async () => {
+            const assignmentDetails = assignmentDetailsInput.value;
+            const gradingCriteria = gradingCriteriaInput.value;
+            const studentPerformance = studentPerformanceInput.value;
+
+            // 필수 입력 필드가 비어있는지 확인
+            if (!assignmentDetails || !gradingCriteria || !studentPerformance) {
+                showMessage('모든 입력란을 채워주세요.', 'error');
+                return;
+            }
+
+            // 로딩 상태 시작
+            generateButton.disabled = true;
+            buttonText.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+            hideMessage(); // 이전 메시지 초기화
+            generatedSeTeukSection.classList.add('hidden'); // 이전 생성 결과 숨기기
+
+            // Gemini AI에 보낼 프롬프트 구성
+            const prompt = `
+                다음은 학생의 수행평가 과제 정보, 채점 기준, 그리고 학생의 수행 내용입니다. 이 정보를 바탕으로 학생의 학교생활기록부(세특)에 기재할 내용을 200자 내외로 작성해주세요. 학생의 강점과 노력한 점을 중심으로 긍정적으로 서술하고, 구체적인 행동과 결과가 드러나도록 작성해주세요.
+
+                ---
+                **수행평가 과제 정보:**
+                ${assignmentDetails}
+
+                **채점 기준:**
+                ${gradingCriteria}
+
+                **학생 수행 내용:**
+                ${studentPerformance}
+                ---
+
+                세특 내용:
+            `;
+
+            try {
+                // Gemini API 호출을 위한 chatHistory 및 payload 설정
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                // API 키는 Canvas 환경에서 자동으로 제공되므로 빈 문자열로 둡니다.
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                // Fetch API를 사용하여 Gemini 모델 호출
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json(); // 응답을 JSON 형태로 파싱
+
+                // API 응답에서 생성된 텍스트 추출 및 상태 업데이트
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    generatedSeTeukTextarea.value = text;
+                    generatedSeTeukSection.classList.remove('hidden'); // 생성 결과 표시
+                    showMessage('세특이 성공적으로 생성되었습니다!', 'success');
+                } else {
+                    // 응답 구조가 예상과 다를 경우 오류 메시지 표시
+                    showMessage('세특 생성에 실패했습니다. 다시 시도해주세요.', 'error');
+                    console.error('API 응답 오류:', result);
+                }
+            } catch (error) {
+                // API 호출 중 발생한 오류 처리
+                showMessage(`세특 생성 중 오류가 발생했습니다: ${error.message}`, 'error');
+                console.error('세특 생성 중 오류 발생:', error);
+            } finally {
+                // 로딩 상태 종료
+                generateButton.disabled = false;
+                buttonText.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+            }
+        };
+
+        /**
+         * 클립보드에 텍스트를 복사하는 함수
+         */
+        const copyToClipboard = () => {
+            generatedSeTeukTextarea.select(); // 텍스트 영역의 내용을 선택
+            document.execCommand('copy'); // 선택된 내용을 클립보드에 복사
+            showMessage('세특 내용이 클립보드에 복사되었습니다!', 'success');
+        };
+
+        // 이벤트 리스너 등록
+        generateButton.addEventListener('click', generateSeTeuk);
+        copyButton.addEventListener('click', copyToClipboard);
+    </script>
+</body>
+</html>
