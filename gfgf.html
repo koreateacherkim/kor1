@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미술 세특 생성기</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom modal styles for copy confirmation */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center p-4">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-3xl border border-gray-200">
+        <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8 tracking-tight">
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                미술 세특 생성기
+            </span>
+        </h1>
+
+        <!-- Input Section -->
+        <div class="mb-6">
+            <label for="assessmentDescription" class="block text-lg font-semibold text-gray-700 mb-2">
+                학생 수행평가 결과물 설명 입력
+            </label>
+            <textarea
+                id="assessmentDescription"
+                class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm resize-y min-h-[150px]"
+                placeholder="예: 학생은 '자연을 담은 추상화' 프로젝트에서 독창적인 아이디어로 자연의 색감을 표현했습니다. 다양한 재료를 탐색하며 자신만의 기법을 개발했고, 특히 물감을 겹쳐 바르는 방식으로 깊이감 있는 질감을 만들어냈습니다. 동료들과의 협업에서도 적극적으로 의견을 나누며 긍정적인 영향을 주었습니다."
+                rows="8"
+            ></textarea>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="mb-6 text-center">
+            <button
+                id="generateSetukBtn"
+                class="w-full md:w-auto px-8 py-3 rounded-full text-white font-bold text-lg transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            >
+                세특 생성하기
+            </button>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <strong class="font-bold">오류: </strong>
+            <span id="errorText" class="block sm:inline"></span>
+        </div>
+
+        <!-- Generated Se-teuk Output -->
+        <div id="generatedSetukOutput" class="hidden mt-8 pt-6 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-teal-500">
+                    생성된 세부능력 및 특기사항 (세특)
+                </span>
+            </h2>
+            <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
+                <p id="setukText" class="text-gray-800 leading-relaxed whitespace-pre-wrap"></p>
+            </div>
+            <div class="mt-4 text-center">
+                <button
+                    id="copySetukBtn"
+                    class="mt-4 px-6 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-300 transition-colors duration-200 shadow-md"
+                >
+                    세특 복사하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Copy Confirmation -->
+    <div id="copyModalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <p class="text-lg font-semibold text-gray-800 mb-4">세특 내용이 클립보드에 복사되었습니다!</p>
+            <button id="closeModalBtn" class="px-6 py-2 bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-600 transition-colors duration-200 shadow-md">확인</button>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const assessmentDescriptionTextarea = document.getElementById('assessmentDescription');
+        const generateSetukBtn = document.getElementById('generateSetukBtn');
+        const generatedSetukOutput = document.getElementById('generatedSetukOutput');
+        const setukTextParagraph = document.getElementById('setukText');
+        const copySetukBtn = document.getElementById('copySetukBtn');
+        const errorMessageDiv = document.getElementById('errorMessage');
+        const errorTextSpan = document.getElementById('errorText');
+        const copyModalOverlay = document.getElementById('copyModalOverlay');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Function to show custom modal
+        function showModal() {
+            copyModalOverlay.classList.add('show');
+        }
+
+        // Function to hide custom modal
+        function hideModal() {
+            copyModalOverlay.classList.remove('show');
+        }
+
+        // Event listener for closing the modal
+        closeModalBtn.addEventListener('click', hideModal);
+        copyModalOverlay.addEventListener('click', (e) => {
+            if (e.target === copyModalOverlay) {
+                hideModal();
+            }
+        });
+
+        // Function to handle generating the Se-teuk using the Gemini API
+        async function generateSetuk() {
+            const assessmentDescription = assessmentDescriptionTextarea.value.trim();
+
+            if (!assessmentDescription) {
+                errorMessageDiv.classList.remove('hidden');
+                errorTextSpan.textContent = '학생 수행평가 결과물 설명을 입력해주세요.';
+                generatedSetukOutput.classList.add('hidden');
+                return;
+            }
+
+            // Show loading state
+            generateSetukBtn.disabled = true;
+            generateSetukBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            generateSetukBtn.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-purple-500', 'hover:from-blue-600', 'hover:to-purple-600');
+            generateSetukBtn.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    생성 중...
+                </div>
+            `;
+
+            errorMessageDiv.classList.add('hidden');
+            setukTextParagraph.textContent = '';
+            generatedSetukOutput.classList.add('hidden');
+
+            try {
+                // Construct the prompt for the Gemini API
+                const prompt = `
+                당신은 고등학교 미술 교사이며, 학생의 수행평가 결과를 바탕으로 세부능력 및 특기사항(세특)을 작성해야 합니다.
+                아래는 학생의 수행평가 결과물에 대한 설명입니다. 이 설명을 바탕으로 학생의 미술 과목 세특을 200자 내외로 작성해주세요.
+                학생의 노력, 작품의 특징, 성장 가능성, 미술적 재능, 협력 등을 포함하여 긍정적이고 구체적으로 서술해주세요.
+                다음은 학생의 수행평가 결과물 설명입니다:
+                "${assessmentDescription}"
+                `;
+
+                // Prepare the payload for the Gemini API call
+                const chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+
+                // API key is left empty; Canvas will inject it at runtime for gemini-2.0-flash
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                // Make the API call
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.error.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                // Extract the generated text from the API response
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    setukTextParagraph.textContent = text;
+                    generatedSetukOutput.classList.remove('hidden');
+                } else {
+                    errorMessageDiv.classList.remove('hidden');
+                    errorTextSpan.textContent = '세특을 생성하는 데 실패했습니다. 응답 형식이 예상과 다릅니다.';
+                }
+            } catch (err) {
+                console.error('세특 생성 중 오류 발생:', err);
+                errorMessageDiv.classList.remove('hidden');
+                errorTextSpan.textContent = `세특 생성 중 오류가 발생했습니다: ${err.message}. 잠시 후 다시 시도해주세요.`;
+            } finally {
+                // Reset button state
+                generateSetukBtn.disabled = false;
+                generateSetukBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                generateSetukBtn.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-purple-500', 'hover:from-blue-600', 'hover:to-purple-600');
+                generateSetukBtn.innerHTML = '세특 생성하기';
+            }
+        }
+
+        // Event listener for the generate button
+        generateSetukBtn.addEventListener('click', generateSetuk);
+
+        // Event listener for the copy button
+        copySetukBtn.addEventListener('click', () => {
+            const setukContent = setukTextParagraph.textContent;
+            if (setukContent) {
+                const el = document.createElement('textarea');
+                el.value = setukContent;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                showModal(); // Show custom modal instead of alert
+            }
+        });
+    </script>
+</body>
+</html>
